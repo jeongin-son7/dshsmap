@@ -1,0 +1,24 @@
+{
+  "name": "dshs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeongin-son7/dshsmap.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jeongin-son7/dshsmap/issues"
+  },
+  "homepage": "https://github.com/jeongin-son7/dshsmap#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "pg": "^8.16.3"
+  }
+}
