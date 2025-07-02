@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DSHS MAP</title>
+  <style>
+    body, html {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    /* 지도 영역 */
+    #map-wrapper {
+      position: relative;
+      width: 100%;
+      flex: 1 0 auto;
+      overflow: hidden;
+      background: #000;
+    }
+    #map-wrapper::before {
+      content: '';
+      display: block;
+      padding-top: 80.77294686%;
+    }
+    #map-inner {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    #campus-map {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .hotspot {
+      position: absolute;
+      display: block;
+    }
+    .clickable {
+      pointer-events: auto;
+    }
+    .disabled {
+      pointer-events: none;
+    }
+
+    /* 푸터 */
+    #footer {
+      display: none;
+      height: 48px;
+      background: #111;
+      color: #0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 18px;
+    }
+    #qr-result {
+      min-width: 100px;
+      text-align: center;
+    }
+    #qr-move {
+      display: none;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #00c853;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* 스캔 버튼 */
+    #scan-btn {
+      position: fixed;
+      right: 16px;
+      bottom: 64px;
+      z-index: 1000;
+      width: 64px;
+      height: 64px;
+      border: none;
+      border-radius: 50%;
+      background: #4a4a4a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    #scan-btn svg {
+      width: 28px;
+      height: 28px;
+      fill: #fff;
+    }
+
+    /* 오버레이 */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #qr-reader {
+      width: 90vw;
+      max-width: 400px;
+    }
+    #close-btn {
+      margin-top: 16px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #e0e0e0;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+  <script src="https://unpkg.com/html5-qrcode@2.3.7"></script>
+  <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
+</head>
+<body>
+
+  <div style="display:flex;justify-content:center;margin:14px 0;">
+    <input id="room-search" type="text" placeholder="교실명, 실험실명 등 검색" style="font-size:18px;padding:7px;width:70%;border-radius:8px;border:1px solid #bbb;">
+    <button id="room-search-btn" style="margin-left:8px;font-size:18px;padding:7px 16px;">검색</button>
+  </div>
+
+  <div id="map-wrapper">
+    <div id="map-inner">
+      <img id="campus-map" src="campus_map.jpg" alt="캠퍼스 지도">
+      <!-- 핫스폿: data-percent 속성으로 비율 지정 -->
+      <a class="hotspot clickable" href="dasan.html" title="다산관"
+         data-l="6.6" data-t="9.9" data-w="12.1" data-h="61.2"></a>
+      <a class="hotspot clickable" href="bilsin.html" title="일신관"
+         data-l="21.2" data-t="9.9" data-w="41.9" data-h="17.8"></a>
+      <a class="hotspot clickable" href="tami.html" title="탐의관"
+         data-l="23.5" data-t="37.9" data-w="49.1" data-h="11.6"></a>
+      <div class="hotspot disabled" title="체육관"
+         data-l="71.9" data-t="8.1" data-w="13.3" data-h="28.0"></div>
+      <div class="hotspot disabled" title="여명관 A"
+         data-l="61.0" data-t="56.3" data-w="10.4" data-h="28.6"></div>
+      <div class="hotspot disabled" title="여명관 B"
+         data-l="78.8" data-t="40.4" data-w="12.5" data-h="52.4"></div>
+      <div class="hotspot disabled" title="운동장"
+         data-l="25.0" data-t="53.0" data-w="34.7" data-h="35.7"></div>
+    </div>
+  </div>
+
+  <div id="footer">
+    인식된 QR: <span id="qr-result">-</span>
+    <button id="qr-move" type="button">이동</button>
+  </div>
+
+  <button id="scan-btn" type="button" title="QR 스캔">
+    <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3m2 2v4h4V5H5m6 6h8v8h-8v-8m2 2v4h4v-4h-4m4-12h6v6h-2V5h-4V3M3 11h2v6H3v-6m0 8h6v2H3v-2m14 2h6v-6h-2v4h-4v2z"/></svg>
+  </button>
+
+  <div id="overlay">
+    <div id="qr-reader"></div>
+    <button id="close-btn" type="button">닫기</button>
+  </div>
+
+  <script>
+    // 비율 기반 핫스폿 크기 조정
+    function resizeHotspots() {
+      const wrapper = document.getElementById('map-wrapper');
+      const w = wrapper.clientWidth;
+      const h = wrapper.clientHeight;
+      document.querySelectorAll('.hotspot').forEach(el => {
+        const l = parseFloat(el.dataset.l) || 0;
+        const t = parseFloat(el.dataset.t) || 0;
+        const wd = parseFloat(el.dataset.w) || 0;
+        const ht = parseFloat(el.dataset.h) || 0;
+        el.style.left = (w * l/100) + 'px';
+        el.style.top = (h * t/100) + 'px';
+        el.style.width = (w * wd/100) + 'px';
+        el.style.height = (h * ht/100) + 'px';
+      });
+    }
+
+    window.addEventListener('load', updateHotspots);
+    window.addEventListener('resize', updateHotspots);
+
+    function updateHotspots() {
+  const img = document.getElementById('campus-map');
+  const rect = img.getBoundingClientRect();
+
+  // map-inner 기준 위치 잡기(스크롤X/Y도 빼줘야함)
+  const parentRect = img.parentElement.getBoundingClientRect();
+  const offsetLeft = rect.left - parentRect.left;
+  const offsetTop = rect.top - parentRect.top;
+
+  document.querySelectorAll('.hotspot').forEach(hs => {
+    const l = parseFloat(hs.dataset.l), t = parseFloat(hs.dataset.t);
+    const w = parseFloat(hs.dataset.w), h = parseFloat(hs.dataset.h);
+    hs.style.left   = (offsetLeft + rect.width  * l/100) + 'px';
+    hs.style.top    = (offsetTop  + rect.height * t/100) + 'px';
+    hs.style.width  = (rect.width  * w/100) + 'px';
+    hs.style.height = (rect.height * h/100) + 'px';
+  });
+}
+    window.addEventListener('load', updateHotspots);
+    window.addEventListener('resize', updateHotspots);
+
+    // QR 스캐너 설정
+    const scanBtn = document.getElementById('scan-btn');
+    const overlay = document.getElementById('overlay');
+    const closeBtn = document.getElementById('close-btn');
+    const footer = document.getElementById('footer');
+    const qrResult = document.getElementById('qr-result');
+    const qrMove = document.getElementById('qr-move');
+    let html5QrCode, qrData = '';
+
+    scanBtn.onclick = async () => {
+      overlay.style.display = 'flex';
+      footer.style.display = 'none';
+      qrMove.style.display = 'none';
+      html5QrCode = new Html5Qrcode('qr-reader');
+      try {
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: 250 },
+          decodedText => {
+            qrData = decodedText;
+            qrResult.textContent = decodedText;
+            footer.style.display = 'flex';
+            qrMove.style.display = 'inline-block';
+            html5QrCode.stop();
+          }
+        );
+      } catch (err) {
+        alert('QR 스캐너 오류: ' + err);
+      }
+    };
+
+    closeBtn.onclick = () => {
+      overlay.style.display = 'none';
+      if (html5QrCode) html5QrCode.stop();
+    };
+
+    qrMove.onclick = async () => {
+  if (!qrData) return;
+
+  // 1. URL 형태면 바로 이동
+  if (/^https?:\/\//.test(qrData)) {
+    location.href = qrData;
+    return;
+  }
+
+  // 2. 점호 전용 키워드(예: 'rollcall', 'rollcall.html')면 rollcall.html로 이동
+  if (qrData.trim().toLowerCase() === 'rollcall' || qrData.trim().toLowerCase() === 'rollcall.html') {
+    location.href = 'rollcall.html';
+    return;
+  }
+
+  // 3. 나머지는 searchRoom API로 검색 (교실/실험실 검색키로 간주)
+  const res = await fetch('/.netlify/functions/searchRoom?query=' + encodeURIComponent(qrData));
+  if (!res.ok) {
+    alert('검색 서버 에러!');
+    return;
+  }
+  const data = await res.json();
+  if (!data || !data.building || !data.floor) {
+    alert('해당 교실/실험실이 없습니다!');
+    return;
+  }
+  // 페이지 이동 (예: bilsin_2f.html)
+  window.location.href = `${data.building}_${data.floor}f.html`;
+};
+
+    // Panzoom 초기화
+    const panzoom = Panzoom(document.getElementById('map-inner'), {
+      maxScale: 4,
+      minScale: 1,
+      contain: 'outside',
+      step: 0.25
+    });
+    document.getElementById('map-wrapper').parentElement.addEventListener('wheel', panzoom.zoomWithWheel, { passive: false });
+
+// === 교실/실험실 검색 기능 ===
+document.getElementById('room-search-btn').onclick = async function() {
+  const q = document.getElementById('room-search').value.trim();
+  if (!q) {
+    alert('검색어를 입력하세요!');
+    return;
+  }
+  // API 호출: 검색어 전달해서 building, floor 받아옴
+  const res = await fetch('/.netlify/functions/searchRoom?query=' + encodeURIComponent(q));
+  if (!res.ok) {
+    alert('검색 서버 에러!');
+    return;
+  }
+  const data = await res.json();
+  if (!data || !data.building || !data.floor) {
+    alert('해당 교실/실험실이 없습니다!');
+    return;
+  }
+  // 페이지 이동 (예: bilsin_2f.html)
+  window.location.href = `${data.building}_${data.floor}f.html`;
+};
+
+  </script>
+</body>
+</html>

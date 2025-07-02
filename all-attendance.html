@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>오늘 출석 학생 명단</title>
+  <style>
+    body { font-family:sans-serif; background:#f5f5f5; }
+    main { max-width:400px; margin:32px auto; background:#fff; border-radius:16px; box-shadow:0 2px 12px #0001; padding:24px;}
+    h2 { margin-bottom:12px;}
+    table { width:100%; border-collapse:collapse;}
+    th,td {border-bottom:1px solid #eee; padding:8px;}
+  </style>
+</head>
+<body>
+<main>
+  <h2>오늘 출석 학생(학번순)</h2>
+  <table>
+    <thead><tr><th>학번</th><th>시각</th></tr></thead>
+    <tbody id="all-list"></tbody>
+  </table>
+</main>
+<script>
+function getQuery(q) {
+  return new URLSearchParams(location.search).get(q);
+}
+const token = getQuery('token');
+const today = new Date().toISOString().slice(0,10).replace(/-/g,"");
+if (!token || !token.startsWith('teacher-') || token.slice(8)!==today) {
+  document.body.innerHTML = "<h2>잘못된 접근입니다!</h2>";
+} else {
+  // 출석 명단 가져오기
+  fetch('/.netlify/functions/getAttendance?all=1')
+    .then(r=>r.json())
+    .then(list => {
+      console.log('서버에서 받은 출석 명단:', list);
+      let tbody = document.getElementById('all-list');
+      tbody.innerHTML = "";
+      list.forEach(row=>{
+        let tr = document.createElement('tr');
+        let kst = row.kst_time.replace(' ', 'T');
+let timeStr = new Date(kst).toLocaleTimeString('ko-KR');
+tr.innerHTML = `<td>${row.student_id}</td><td>${timeStr}</td>`;
+        tbody.appendChild(tr);
+      });
+    });
+}
+</script>
+</body>
+</html>

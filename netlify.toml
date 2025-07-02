@@ -1,0 +1,9 @@
+[build]
+  functions = "netlify/functions"
+
+[build.environment]
+  NEON_HOST     = "your-host.neon.tech"
+  NEON_USER     = "username"
+  NEON_PASSWORD = "password"
+  NEON_DATABASE = "your_db_name"
+  NEON_PORT     = "5432"
